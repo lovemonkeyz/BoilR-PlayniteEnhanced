@@ -18,7 +18,10 @@ pub fn get_config_folder() -> PathBuf {
 pub fn get_config_folder() -> PathBuf {
     let config_home = std::env::var("APPDATA");
     match config_home {
-        Ok(p) => Path::new(&p).join("boilr"),
+        // TEMP (dev/debug): pointing at local repo folder instead of real appdata.
+        // TODO: Restore the original line below (and remove the Ok(_) line) when production ready.
+        // Ok(p) => Path::new(&p).join("boilr"),
+        Ok(_) => PathBuf::from(r"C:\gitrepo\BoilR\Temp_Appdata"),
         Err(_) => Path::new("").to_path_buf(),
     }
 }

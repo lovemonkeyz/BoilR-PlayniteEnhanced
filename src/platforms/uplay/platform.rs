@@ -167,7 +167,6 @@ fn get_games_from_winreg() -> eyre::Result<Vec<UplayGame>> {
 
 #[cfg(target_family = "unix")]
 fn get_games_from_proton() -> eyre::Result<Vec<UplayGame>> {
-
     let launcher_path = get_launcher_path()?;
     let parent = launcher_path
         .exe_path
@@ -180,25 +179,30 @@ fn get_games_from_proton() -> eyre::Result<Vec<UplayGame>> {
     let buffer = std::fs::read(file)?;
     let splits = get_file_splits(&buffer);
     let configurations = splits.iter().filter(|s| is_valid_game_config(s));
-    let parsed_configurations= configurations.flat_map(|config| parse_game_config(config));
-    let games = parsed_configurations.map(|game|{
-        UplayGame{
-            name:game.shortcut_name.to_string(),
-            icon: parent.join("data").join("games").join(game.icon_image).to_string_lossy().to_string(),
-            id : game.register
-                    .strip_prefix("HKEY_LOCAL_MACHINE\\SOFTWARE\\Ubisoft\\Launcher\\Installs\\")
-                    .unwrap_or_default()
-                    .strip_suffix("\\InstallDir")
-                    .unwrap_or_default()
-                    .to_string(),
-            launcher : launcher_path.exe_path.clone(),
-            launcher_compat_folder: launcher_path.compat_folder.clone(),
-            launch_id: game.launch_id
-        }
+    let parsed_configurations = configurations.flat_map(|config| parse_game_config(config));
+    let games = parsed_configurations.map(|game| UplayGame {
+        name: game.shortcut_name.to_string(),
+        icon: parent
+            .join("data")
+            .join("games")
+            .join(game.icon_image)
+            .to_string_lossy()
+            .to_string(),
+        id: game
+            .register
+            .strip_prefix("HKEY_LOCAL_MACHINE\\SOFTWARE\\Ubisoft\\Launcher\\Installs\\")
+            .unwrap_or_default()
+            .strip_suffix("\\InstallDir")
+            .unwrap_or_default()
+            .to_string(),
+        launcher: launcher_path.exe_path.clone(),
+        launcher_compat_folder: launcher_path.compat_folder.clone(),
+        launch_id: game.launch_id,
     });
     Ok(games.collect())
 }
 
+#[allow(dead_code)]
 struct GameConfig<'a> {
     icon_image: &'a str,
     shortcut_name: &'a str,
@@ -206,7 +210,8 @@ struct GameConfig<'a> {
     launch_id: usize,
 }
 
-fn parse_game_config(split: &str) -> Vec<GameConfig> {
+#[allow(dead_code)]
+fn parse_game_config(split: &str) -> Vec<GameConfig<'_>> {
     let mut res = vec![];
     let mut icon_image = "";
     let mut shortcut_name = "";
@@ -259,11 +264,13 @@ fn parse_game_config(split: &str) -> Vec<GameConfig> {
     res
 }
 
+#[allow(dead_code)]
 fn is_valid_game_config(config: &str) -> bool {
     let requires = ["executables:", "online:", "shortcut_name:", "register:"];
     requires.iter().all(|req| config.contains(req))
 }
 
+#[allow(dead_code)]
 fn get_file_splits(buffer: &[u8]) -> Vec<String> {
     let new_string = String::from_utf8_lossy(buffer);
     let sections = new_string.split("version: 2.0").map(|s| s.replace('�', ""));
@@ -317,13 +324,16 @@ mod test {
         assert_eq!(501, splits.len());
     }
 
-   #[test]
+    #[test]
     fn can_parse_into_game_config() {
         let content = include_bytes!("testconfiguration");
         let splits = get_file_splits(content);
-        let games:Vec<_> = splits.iter().flat_map(|split| parse_game_config(split)).collect();
+        let games: Vec<_> = splits
+            .iter()
+            .flat_map(|split| parse_game_config(split))
+            .collect();
         assert_eq!(2, games.len());
-        assert_eq!(Some("For Honor"),games.get(0).map(|h|h.shortcut_name));
-        assert_eq!(Some("WATCH_DOGS® 2"),games.get(1).map(|h|h.shortcut_name));
+        assert_eq!(Some("For Honor"), games.get(0).map(|h| h.shortcut_name));
+        assert_eq!(Some("WATCH_DOGS® 2"), games.get(1).map(|h| h.shortcut_name));
     }
 }
